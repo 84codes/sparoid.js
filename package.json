@@ -6,7 +6,7 @@
     "ava": "^3.15.0",
     "eslint": "^7.20.0"
   },
-  "name": "sparoid",
+  "name": "@84codes/sparoid",
   "version": "1.0.0",
   "description": "SPAroid client",
   "main": "src/sparoid.mjs",
@@ -15,10 +15,16 @@
     "type": "git",
     "url": "git+https://github.com/84codes/sparoid.js.git"
   },
+  "files": [
+    "src/"
+  ],
   "author": "84codes",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/84codes/sparoid.js/issues"
   },
-  "homepage": "https://github.com/84codes/sparoid.js#readme"
+  "homepage": "https://github.com/84codes/sparoid.js#readme",
+  "directories": {
+    "test": "test"
+  }
 }
