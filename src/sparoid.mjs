@@ -17,6 +17,11 @@ export default class Sparoid {
         const encrypted = this.encrypt(msg)
         const hmaced = this.prefixHmac(encrypted)
         await this.udpSend(hmaced)
+        await this.sleep(200) // let the server process the packet
+    }
+
+    sleep(s) {
+        return new Promise((resolv) => setTimeout(resolv, s))
     }
 
     encrypt(msg) {
