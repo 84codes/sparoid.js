@@ -7,5 +7,5 @@ JavaScript/NodeJS implemention of the SPAroid client.
 ```javascript
 import Sparoid from 'sparoid'
 
-new Sparoid(host, port).auth
+await new Sparoid(host, port).auth()
 ```
