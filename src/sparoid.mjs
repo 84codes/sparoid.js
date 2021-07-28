@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { Buffer } from 'buffer'
 import process from 'process'
 import dns from 'dns'
+import net from 'net'
 
 export default class Sparoid {
     constructor(host, port, key, hmac_key) {
@@ -13,10 +14,14 @@ export default class Sparoid {
     }
 
     async auth() {
+        const self = this
         const msg = await this.plainMsg()
         const encrypted = this.encrypt(msg)
         const hmaced = this.prefixHmac(encrypted)
-        await this.udpSend(hmaced)
+        const addresses = await this.resolvHost(self.host)
+        await Promise.all(addresses.map((address) => {
+            this.udpSend(hmaced, address)
+        }));
         await this.sleep(200) // let the server process the packet
     }
 
@@ -74,11 +79,23 @@ export default class Sparoid {
         })
     }
 
-    udpSend(message) {
+    resolvHost(host) {
+        return new Promise((resolv, reject) => {
+            if (net.isIPv4(host)) resolv([host])
+            const resolver = new dns.Resolver()
+            resolver.resolve4(host, (err, addresses) => {
+                if (err) return reject(err)
+
+                resolv(addresses)
+            })
+        })
+    }
+
+    udpSend(message, address) {
         const self = this
         return new Promise((resolv, reject) => {
             const client = dgram.createSocket('udp4')
-            client.send(message, self.port, self.host, (err) => {
+            client.send(message, self.port, address, (err) => {
                 if (err) return reject(err)
 
                 client.close()
