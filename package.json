@@ -21,7 +21,8 @@
     "url": "git+https://github.com/84codes/sparoid.js.git"
   },
   "files": [
-    "src/"
+    "src/",
+    "dist/"
   ],
   "author": "84codes",
   "license": "Apache-2.0",
