@@ -1,11 +1,14 @@
 {
   "scripts": {
     "test": "ava --verbose",
-    "preversion": "npm test"
+    "build": "rollup -c",
+    "preversion": "npm test",
+    "version": "npm run build && git add -A dist"
   },
   "devDependencies": {
     "ava": "^3.15.0",
-    "eslint": "^7.20.0"
+    "eslint": "^7.20.0",
+    "rollup": "^2.55.1"
   },
   "name": "@84codes/sparoid",
   "type": "module",
