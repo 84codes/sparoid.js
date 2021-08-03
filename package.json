@@ -7,7 +7,7 @@
     "eslint": "^7.20.0"
   },
   "name": "@84codes/sparoid",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "SPAroid client",
   "main": "src/sparoid.mjs",
   "dependencies": {},
