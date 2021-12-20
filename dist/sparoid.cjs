@@ -24,7 +24,7 @@ async function auth(host, port, key, hmac_key, public_ip) {
     const msg = await plainMsg(public_ip);
     const encrypted = encrypt(msg, key);
     const hmaced = prefixHmac(encrypted, hmac_key);
-    udpSend(hmaced, host, port);
+    await udpSend(hmaced, host, port);
     await sleep(200); // let the server process the packet
 }
 
