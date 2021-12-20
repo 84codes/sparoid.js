@@ -15,6 +15,10 @@
   "version": "2.1.0",
   "description": "SPAroid client",
   "main": "src/sparoid.mjs",
+  "exports": {
+    "require": "./dist/sparoid.cjs",
+    "import": "./src/sparoid.mjs"
+  },
   "dependencies": {},
   "repository": {
     "type": "git",
