@@ -70,6 +70,32 @@ test("result is always 16 bytes", t => {
   t.is(ipv6ToBuffer("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff").length, 16)
 })
 
+// --- Embedded IPv4 tail ---
+
+test("IPv4-mapped address ::ffff:192.0.2.128", t => {
+  const buf = ipv6ToBuffer("::ffff:192.0.2.128")
+  t.deepEqual(buf, Buffer.from([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0xff, 0xff, 0xc0, 0x00, 0x02, 0x80,
+  ]))
+})
+
+test("IPv4-mapped address ::ffff:10.0.0.1", t => {
+  const buf = ipv6ToBuffer("::ffff:10.0.0.1")
+  t.deepEqual(buf, Buffer.from([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0xff, 0xff, 0x0a, 0x00, 0x00, 0x01,
+  ]))
+})
+
+test("IPv4-compatible address ::192.168.1.1", t => {
+  const buf = ipv6ToBuffer("::192.168.1.1")
+  t.deepEqual(buf, Buffer.from([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8, 0x01, 0x01,
+  ]))
+})
+
 // --- Invalid inputs ---
 
 test("rejects empty string", t => {

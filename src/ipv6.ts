@@ -6,8 +6,13 @@ export function ipv6ToBuffer(ip: string): Buffer {
         throw new Error('Invalid IPv6 address');
     }
 
+    // Check for embedded IPv4 tail (e.g. ::ffff:192.0.2.128)
+    // The IPv4 part occupies the last 2 of the 8 groups
+    const hasIPv4 = ip.includes('.');
+    const targetGroups = hasIPv4 ? 7 : 8;
+
     const parts = ip.split(':');
-    let fullParts = [];
+    let fullParts: string[] = [];
 
     // 1. Handle "::" expansion
     const doubleColonIndex = ip.indexOf('::');
@@ -17,16 +22,26 @@ export function ipv6ToBuffer(ip: string): Buffer {
         const left = split[0] ? split[0].split(':') : [];
         const right = split[1] ? split[1].split(':') : [];
 
-        // Calculate how many blocks of "0000" we need to fill the gap
-        // Total groups must be 8
-        const missing = 8 - (left.length + right.length);
+        const missing = targetGroups - (left.length + right.length);
 
         if (missing < 0) throw new Error('Invalid IPv6: Too many groups');
 
-        // Reconstruct the full array
         fullParts = [...left, ...Array(missing).fill('0'), ...right];
     } else {
         fullParts = parts;
+    }
+
+    // 2. Expand embedded IPv4 tail into two hex groups
+    if (hasIPv4) {
+        const lastPart = fullParts[fullParts.length - 1];
+        const octets = lastPart.split('.').map(Number);
+        if (octets.length !== 4 || octets.some(o => isNaN(o) || o < 0 || o > 255)) {
+            throw new Error(`Invalid embedded IPv4 in IPv6: ${lastPart}`);
+        }
+        fullParts.splice(-1, 1,
+            ((octets[0] << 8) | octets[1]).toString(16),
+            ((octets[2] << 8) | octets[3]).toString(16),
+        );
     }
 
     if (fullParts.length !== 8) {
