@@ -38,12 +38,12 @@ function getHexKeyBuffer(envVarName: string, argValue: string | undefined, keyDe
     return Buffer.from(value, 'hex');
 }
 
-export async function auth(host: string, port: number, key?: string, hmac_key?: string): Promise<void> {
+export async function auth(host: string, port: number, key?: string, hmac_key?: string, public_ips?: Buffer[]): Promise<void> {
     const keyBuf = getHexKeyBuffer('SPAROID_KEY', key, 'encryption key');
     const hmacKeyBuf = getHexKeyBuffer('SPAROID_HMAC_KEY', hmac_key, 'HMAC key');
     const hostAddresses = await resolvHost(host);
-    const ips = await publicIp()
-    const globalIps = getGlobalIPv6();
+    const ips = public_ips || await publicIp()
+    const globalIps = public_ips ? [] : getGlobalIPv6();
 
     for (const addr of hostAddresses) {
         let ipv6Added = false;
