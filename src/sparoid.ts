@@ -2,7 +2,7 @@ import dgram from 'dgram'
 import crypto from 'crypto'
 import { Buffer } from 'buffer'
 import process from 'process'
-import dns from 'dns'
+import { LookupAddress } from 'dns'
 import { lookup } from 'dns/promises'
 import net from 'net'
 import { Message, MessageV1, MessageV2 } from './message.js'
@@ -41,7 +41,7 @@ function getHexKeyBuffer(envVarName: string, argValue: string | undefined, keyDe
 export async function auth(host: string, port: number, key?: string, hmac_key?: string, public_ips?: Buffer[]): Promise<void> {
     const keyBuf = getHexKeyBuffer('SPAROID_KEY', key, 'encryption key');
     const hmacKeyBuf = getHexKeyBuffer('SPAROID_HMAC_KEY', hmac_key, 'HMAC key');
-    const hostAddresses = await resolvHost(host);
+    const hostAddresses = await resolveHost(host);
     const ips = public_ips || await publicIp()
     const globalIps = public_ips ? [] : getGlobalIPv6();
 
@@ -114,7 +114,7 @@ async function publicIp(): Promise<Buffer[]> {
     return ips
 }
 
-async function resolvHost(host: string): Promise<dns.LookupAddress[]> {
+async function resolveHost(host: string): Promise<LookupAddress[]> {
     const family = net.isIP(host)
     if (family !== 0) {
         return [{ address: host, family }]
@@ -124,7 +124,7 @@ async function resolvHost(host: string): Promise<dns.LookupAddress[]> {
     });
 }
 
-async function udpSend(message: Buffer, host: dns.LookupAddress, port: number): Promise<void> {
+async function udpSend(message: Buffer, host: LookupAddress, port: number): Promise<void> {
     const client = dgram.createSocket(host.family === 4 ? 'udp4' : 'udp6')
     const promise = new Promise<void>((resolve, reject) => {
         client.send(message, port, host.address, (err) => {
