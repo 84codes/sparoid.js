@@ -8,7 +8,13 @@ if (!iniFile || !host) {
   process.exit(1)
 }
 
-const port = portArg ? parseInt(portArg, 10) : 8484
+const port = portArg ? Number(portArg) : 8484
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  console.error(
+    `Invalid port "${portArg ?? port}". Port must be an integer between 1 and 65535.`
+  )
+  process.exit(1)
+}
 
 const ini = fs.readFileSync(iniFile, "utf-8")
 const config: Record<string, string> = {}
