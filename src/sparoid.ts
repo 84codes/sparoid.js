@@ -11,17 +11,17 @@ import { ipv6ToBuffer, getGlobalIPv6 } from './ipv6.js'
 export async function auth(host: string, port: number, key?: string, hmac_key?: string): Promise<void> {
     const keyBuf = Buffer.from(key || process.env.SPAROID_KEY!, 'hex')
     const hmacKeyBuf = Buffer.from(hmac_key || process.env.SPAROID_HMAC_KEY!, 'hex')
-    const host_addresses = await resolvHost(host);
+    const hostAddresses = await resolvHost(host);
     const ips = await publicIp()
-    const global_ips = getGlobalIPv6();
+    const globalIps = getGlobalIPv6();
 
-    for (const addr of host_addresses) {
-        let ipv6_added = false;
+    for (const addr of hostAddresses) {
+        let ipv6Added = false;
 
         const messages: Message[] = [];
-        for (const ipv6 of global_ips) {
+        for (const ipv6 of globalIps) {
             messages.push(new MessageV2(ipv6.address, ipv6.range))
-            ipv6_added = true;
+            ipv6Added = true;
         }
 
         for (const ip of ips) {
@@ -31,7 +31,7 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
                     messages.push(new MessageV2(ip, 32))
                     break;
                 case 16:
-                    if (!ipv6_added)
+                    if (!ipv6Added)
                         messages.push(new MessageV2(ip, 128))
                     break;
             }
