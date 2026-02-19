@@ -8,9 +8,39 @@ import net from 'net'
 import { Message, MessageV1, MessageV2 } from './message.js'
 import { ipv6ToBuffer, getGlobalIPv6 } from './ipv6.js'
 
+function getHexKeyBuffer(envVarName: string, argValue: string | undefined, keyDescription: string): Buffer {
+    const value = argValue || process.env[envVarName];
+
+    if (!value) {
+        throw new Error(
+            `Missing ${keyDescription}: provide it as an argument or set the ${envVarName} environment variable.`,
+        );
+    }
+
+    if (value.length === 0) {
+        throw new Error(
+            `The ${keyDescription} (from ${envVarName}) must not be empty.`,
+        );
+    }
+
+    if (value.length % 2 !== 0) {
+        throw new Error(
+            `The ${keyDescription} (from ${envVarName}) must be a hex string with an even number of characters.`,
+        );
+    }
+
+    if (!/^[0-9a-fA-F]+$/.test(value)) {
+        throw new Error(
+            `The ${keyDescription} (from ${envVarName}) must contain only hexadecimal characters (0-9, a-f).`,
+        );
+    }
+
+    return Buffer.from(value, 'hex');
+}
+
 export async function auth(host: string, port: number, key?: string, hmac_key?: string): Promise<void> {
-    const keyBuf = Buffer.from(key || process.env.SPAROID_KEY!, 'hex')
-    const hmacKeyBuf = Buffer.from(hmac_key || process.env.SPAROID_HMAC_KEY!, 'hex')
+    const keyBuf = getHexKeyBuffer('SPAROID_KEY', key, 'encryption key');
+    const hmacKeyBuf = getHexKeyBuffer('SPAROID_HMAC_KEY', hmac_key, 'HMAC key');
     const hostAddresses = await resolvHost(host);
     const ips = await publicIp()
     const globalIps = getGlobalIPv6();
