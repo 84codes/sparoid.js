@@ -45,6 +45,7 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
     const ips = public_ips || await publicIp()
     const globalIps = public_ips ? [] : getGlobalIPv6();
 
+    const promises: Promise<void>[] = [];
     for (const addr of hostAddresses) {
         let ipv6Added = false;
 
@@ -72,9 +73,10 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
         for (const msg of messages) {
             const encrypted = encrypt(msg, keyBuf)
             const hmaced = prefixHmac(encrypted, hmacKeyBuf)
-            udpSend(hmaced, addr, port)
+            promises.push(udpSend(hmaced, addr, port));
         }
     }
+    await Promise.all(promises)
     await sleep(200) // let the server process the packet
 }
 
@@ -105,7 +107,9 @@ async function publicIp(): Promise<Buffer[]> {
             return ipv6ToBuffer(ip);
         }
     }))
-    const ips = settled.filter((r): r is PromiseFulfilledResult<Buffer> => r.status === "fulfilled").map((r) => r.value)
+    const ips = settled
+        .filter((r): r is PromiseFulfilledResult<Buffer> => r.status === "fulfilled" && Buffer.isBuffer(r.value))
+        .map((r) => r.value);
     if (ips.length === 0) throw new Error("Failed to determine public IP")
     return ips
 }
