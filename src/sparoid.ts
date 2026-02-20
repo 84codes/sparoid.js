@@ -5,7 +5,7 @@ import process from 'process'
 import { LookupAddress } from 'dns'
 import { lookup } from 'dns/promises'
 import net from 'net'
-import { Message, MessageV1, MessageV2 } from './message.js'
+import { Message, MessageV2 } from './message.js'
 import { ipv6ToBuffer, getGlobalIPv6 } from './ipv6.js'
 
 function getHexKeyBuffer(envVarName: string, argValue: string | undefined, keyDescription: string): Buffer {
@@ -58,8 +58,7 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
         for (const ip of ips) {
             switch (ip.length) {
                 case 4:
-                    messages.push(new MessageV1(ip))
-                    messages.push(new MessageV2(ip, 32))
+                    messages.unshift(new MessageV2(ip, 32))
                     break;
                 case 16:
                     if (!ipv6Added)
@@ -67,8 +66,6 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
                     break;
             }
         }
-
-        messages.sort((a, b) => a.toBuffer().length - b.toBuffer().length) // send shorter messages first
 
         for (const msg of messages) {
             const encrypted = encrypt(msg, keyBuf)

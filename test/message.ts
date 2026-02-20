@@ -1,6 +1,6 @@
 import test from 'ava'
 import crypto from 'crypto'
-import { MessageV1, MessageV2 } from '../src/message.js'
+import { MessageV2 } from '../src/message.js'
 
 const ipv4 = Buffer.from([192, 168, 1, 1])
 const ipv6 = Buffer.from([
@@ -109,14 +109,6 @@ function decrypt(iv: Buffer, ciphertext: Buffer, key: Buffer): Buffer {
 }
 
 const aesKey = Buffer.alloc(32) // 256-bit zero key
-
-test("MessageV1 round-trip encrypt/decrypt", t => {
-  const msg = new MessageV1(ipv4)
-  const plain = msg.toBuffer()
-  const { iv, ciphertext } = encrypt(plain, aesKey)
-  const decrypted = decrypt(iv, ciphertext, aesKey)
-  t.deepEqual(decrypted, plain)
-})
 
 test("MessageV2 IPv4 round-trip encrypt/decrypt", t => {
   const msg = new MessageV2(ipv4, 24)
