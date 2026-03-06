@@ -5,8 +5,8 @@ import process from 'process'
 import { LookupAddress } from 'dns'
 import { lookup } from 'dns/promises'
 import net from 'net'
-import { Message, MessageV2 } from './message.js'
-import { ipv6ToBuffer, getGlobalIPv6 } from './ipv6.js'
+import { Message } from './message.js'
+import { ipv6ToBuffer, getPublicIPv6 } from './ipv6.js'
 
 function getHexKeyBuffer(envVarName: string, argValue: string | undefined, keyDescription: string): Buffer {
     const value = argValue || process.env[envVarName];
@@ -42,32 +42,12 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
     const keyBuf = getHexKeyBuffer('SPAROID_KEY', key, 'encryption key');
     const hmacKeyBuf = getHexKeyBuffer('SPAROID_HMAC_KEY', hmac_key, 'HMAC key');
     const hostAddresses = await resolveHost(host);
-    const ips = public_ips || await publicIp()
-    const globalIps = public_ips ? [] : getGlobalIPv6();
+    const ips = public_ips || await publicIps()
 
     const promises: Promise<void>[] = [];
     for (const addr of hostAddresses) {
-        let ipv6Added = false;
-
-        const messages: Message[] = [];
-        for (const ipv6 of globalIps) {
-            messages.push(new MessageV2(ipv6.address, ipv6.range))
-            ipv6Added = true;
-        }
-
         for (const ip of ips) {
-            switch (ip.length) {
-                case 4:
-                    messages.unshift(new MessageV2(ip, 32))
-                    break;
-                case 16:
-                    if (!ipv6Added)
-                        messages.push(new MessageV2(ip, 128))
-                    break;
-            }
-        }
-
-        for (const msg of messages) {
+            const msg = new Message(ip)
             const encrypted = encrypt(msg, keyBuf)
             const hmaced = prefixHmac(encrypted, hmacKeyBuf)
             promises.push(udpSend(hmaced, addr, port));
@@ -96,19 +76,33 @@ function prefixHmac(encrypted: Buffer, hmac_key: Buffer): Buffer {
     return Buffer.concat([digest, encrypted])
 }
 
-async function publicIp(): Promise<Buffer[]> {
-    const settled = await Promise.allSettled(["http://ipv4.icanhazip.com", "http://ipv6.icanhazip.com"].map(async (url) => {
-        const ip = await (await fetch(url).then((res) => res.text())).trim()
-        if (net.isIPv4(ip)) return Buffer.from(ip.split(".").map((part) => parseInt(part)))
-        else if (net.isIPv6(ip)) {
-            return ipv6ToBuffer(ip);
-        }
-    }))
-    const ips = settled
-        .filter((r): r is PromiseFulfilledResult<Buffer> => r.status === "fulfilled" && Buffer.isBuffer(r.value))
-        .map((r) => r.value);
+async function publicIps(): Promise<Buffer[]> {
+    const [ipv4, ipv6] = await Promise.allSettled([
+        publicIPv4(),
+        publicIPv6(),
+    ])
+    const ips: Buffer[] = []
+    if (ipv4.status === "fulfilled" && ipv4.value) ips.push(ipv4.value)
+    if (ipv6.status === "fulfilled" && ipv6.value) ips.push(ipv6.value)
     if (ips.length === 0) throw new Error("Failed to determine public IP")
     return ips
+}
+
+async function publicIPv4(): Promise<Buffer> {
+    const text = await fetch("http://ipv4.icanhazip.com").then((res) => res.text())
+    const ip = text.trim()
+    if (!net.isIPv4(ip)) throw new Error(`Invalid IPv4 response: ${ip}`)
+    return Buffer.from(ip.split(".").map((part) => parseInt(part)))
+}
+
+async function publicIPv6(): Promise<Buffer | null> {
+    const ip = await getPublicIPv6()
+    if (ip) return ip
+    // Fallback to icanhazip.com
+    const text = await fetch("http://ipv6.icanhazip.com").then((res) => res.text())
+    const addr = text.trim()
+    if (!net.isIPv6(addr)) return null
+    return ipv6ToBuffer(addr)
 }
 
 async function resolveHost(host: string): Promise<LookupAddress[]> {

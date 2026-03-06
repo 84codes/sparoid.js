@@ -1,10 +1,11 @@
+#!/usr/bin/env node
 import fs from "fs"
 import { auth } from "./sparoid.js"
 
 const [iniFile, host, portArg] = process.argv.slice(2)
 
 if (!iniFile || !host) {
-  console.error("Usage: npx tsx src/cli.ts <ini-file> <host> [port]")
+  console.error("Usage: sparoid <ini-file> <host> [port]")
   process.exit(1)
 }
 

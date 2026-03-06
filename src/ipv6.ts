@@ -1,5 +1,5 @@
+import dgram from "dgram";
 import net from "net";
-import os from "os";
 
 export function ipv6ToBuffer(ip: string): Buffer {
     if (!net.isIPv6(ip)) {
@@ -48,15 +48,13 @@ export function ipv6ToBuffer(ip: string): Buffer {
         throw new Error('Invalid IPv6: Incorrect number of groups');
     }
 
-    // 2. Write to buffer
+    // 3. Write to buffer
     const buffer = Buffer.alloc(16);
     for (let i = 0; i < 8; i++) {
         const hex = fullParts[i];
 
-        // If a part is empty string (e.g. malformed input), this will fail cleanly
         if (hex === '') throw new Error('Invalid IPv6: Empty group');
 
-        // Parse hex string to integer
         const val = parseInt(hex, 16);
 
         if (isNaN(val) || val > 0xFFFF) {
@@ -69,42 +67,30 @@ export function ipv6ToBuffer(ip: string): Buffer {
     return buffer;
 }
 
-export function getGlobalIPv6() {
-    const interfaces = os.networkInterfaces();
-    const globalAddresses = [];
-
-    for (const interfaceName in interfaces) {
-        const networks = interfaces[interfaceName];
-        if (!networks) continue;
-
-        for (const net of networks) {
-            // 1. Check if it's IPv6
-            if (net.family === 'IPv6') {
-
-                // 2. Filter out internal (Loopback like ::1)
-                if (net.internal) continue;
-
-                // 3. Filter out Link-Local addresses (start with fe80)
-                // These are only valid on the local physical link
-                if (net.address.toLowerCase().startsWith('fe80')) continue;
-
-                // 4. Filter out Unique Local Addresses (start with fc or fd)
-                // These are "private" addresses (similar to 192.168.x.x in IPv4)
-                if (net.address.toLowerCase().startsWith('fc') ||
-                    net.address.toLowerCase().startsWith('fd')) continue;
-
-                // 5. (Optional strict check) Verify it starts with 2 or 3 (Global Unicast 2000::/3)
-                const firstChar = net.address[0];
-                if (firstChar === '2' || firstChar === '3') {
-                    const range = net.cidr ? parseInt(net.cidr.split('/')[1]) : 128;
-                    globalAddresses.push({
-                        address: ipv6ToBuffer(net.address),
-                        range,
-                    });
+// Get public IPv6 address by connecting a UDP socket to Google Public DNS
+export function getPublicIPv6(): Promise<Buffer | null> {
+    return new Promise((resolve) => {
+        const socket = dgram.createSocket('udp6');
+        socket.on('error', () => {
+            socket.close();
+            resolve(null);
+        });
+        socket.connect(53, '2001:4860:4860::8888', () => {
+            try {
+                const addr = socket.address() as { address: string };
+                socket.close();
+                const buf = ipv6ToBuffer(addr.address);
+                // Ensure it's a global unicast address (2000::/3)
+                const firstByte = buf[0];
+                if ((firstByte & 0xe0) !== 0x20) {
+                    resolve(null);
+                    return;
                 }
+                resolve(buf);
+            } catch {
+                socket.close();
+                resolve(null);
             }
-        }
-    }
-
-    return globalAddresses;
+        });
+    });
 }
