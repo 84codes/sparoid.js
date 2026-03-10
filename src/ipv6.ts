@@ -11,7 +11,6 @@ export function ipv6ToBuffer(ip: string): Buffer {
     const hasIPv4 = ip.includes('.');
     const targetGroups = hasIPv4 ? 7 : 8;
 
-    const parts = ip.split(':');
     let fullParts: string[] = [];
 
     // 1. Handle "::" expansion
@@ -28,7 +27,7 @@ export function ipv6ToBuffer(ip: string): Buffer {
 
         fullParts = [...left, ...Array(missing).fill('0'), ...right];
     } else {
-        fullParts = parts;
+        fullParts = ip.split(':');
     }
 
     // 2. Expand embedded IPv4 tail into two hex groups
@@ -71,18 +70,23 @@ export function ipv6ToBuffer(ip: string): Buffer {
 export function getPublicIPv6(): Promise<Buffer | null> {
     return new Promise((resolve) => {
         const socket = dgram.createSocket('udp6');
+        const timeout = setTimeout(() => {
+            socket.close();
+            resolve(null);
+        }, 3000);
         socket.on('error', () => {
+            clearTimeout(timeout);
             socket.close();
             resolve(null);
         });
         socket.connect(53, '2001:4860:4860::8888', () => {
+            clearTimeout(timeout);
             try {
                 const addr = socket.address() as { address: string };
                 socket.close();
                 const buf = ipv6ToBuffer(addr.address);
                 // Ensure it's a global unicast address (2000::/3)
-                const firstByte = buf[0];
-                if ((firstByte & 0xe0) !== 0x20) {
+                if ((buf[0] & 0xe0) !== 0x20) {
                     resolve(null);
                     return;
                 }

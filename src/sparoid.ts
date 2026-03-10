@@ -17,12 +17,6 @@ function getHexKeyBuffer(envVarName: string, argValue: string | undefined, keyDe
         );
     }
 
-    if (value.length === 0) {
-        throw new Error(
-            `The ${keyDescription} (from ${envVarName}) must not be empty.`,
-        );
-    }
-
     if (value.length % 2 !== 0) {
         throw new Error(
             `The ${keyDescription} (from ${envVarName}) must be a hex string with an even number of characters.`,
@@ -89,7 +83,7 @@ async function publicIps(): Promise<Buffer[]> {
 }
 
 async function publicIPv4(): Promise<Buffer> {
-    const text = await fetch("http://ipv4.icanhazip.com").then((res) => res.text())
+    const text = await fetch("https://ipv4.icanhazip.com").then((res) => res.text())
     const ip = text.trim()
     if (!net.isIPv4(ip)) throw new Error(`Invalid IPv4 response: ${ip}`)
     return Buffer.from(ip.split(".").map((part) => parseInt(part)))
@@ -99,7 +93,7 @@ async function publicIPv6(): Promise<Buffer | null> {
     const ip = await getPublicIPv6()
     if (ip) return ip
     // Fallback to icanhazip.com
-    const text = await fetch("http://ipv6.icanhazip.com").then((res) => res.text())
+    const text = await fetch("https://ipv6.icanhazip.com").then((res) => res.text())
     const addr = text.trim()
     if (!net.isIPv6(addr)) return null
     return ipv6ToBuffer(addr)
