@@ -51,8 +51,8 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
     await sleep(200) // let the server process the packet
 }
 
-function sleep(s: number): Promise<void> {
-    return new Promise((resolv) => setTimeout(resolv, s))
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolv) => setTimeout(resolv, ms))
 }
 
 function encrypt(msg: Message, key: Buffer): Buffer {
@@ -98,7 +98,10 @@ async function publicIPv6(): Promise<Buffer | null> {
     if (!res.ok) return null
     const addr = (await res.text()).trim()
     if (!net.isIPv6(addr)) return null
-    return ipv6ToBuffer(addr)
+    const buf = ipv6ToBuffer(addr)
+    // Ensure it's a global unicast address (2000::/3)
+    if ((buf[0] & 0xe0) !== 0x20) return null
+    return buf
 }
 
 async function resolveHost(host: string): Promise<LookupAddress[]> {
