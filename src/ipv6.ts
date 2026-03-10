@@ -69,21 +69,23 @@ export function ipv6ToBuffer(ip: string): Buffer {
 // Get public IPv6 address by connecting a UDP socket to Google Public DNS
 export function getPublicIPv6(): Promise<Buffer | null> {
     return new Promise((resolve) => {
+        let closed = false;
+        const close = () => { if (!closed) { closed = true; socket.close(); } };
         const socket = dgram.createSocket('udp6');
         const timeout = setTimeout(() => {
-            socket.close();
+            close();
             resolve(null);
         }, 3000);
         socket.on('error', () => {
             clearTimeout(timeout);
-            socket.close();
+            close();
             resolve(null);
         });
         socket.connect(53, '2001:4860:4860::8888', () => {
             clearTimeout(timeout);
             try {
                 const addr = socket.address() as { address: string };
-                socket.close();
+                close();
                 const buf = ipv6ToBuffer(addr.address);
                 // Ensure it's a global unicast address (2000::/3)
                 if ((buf[0] & 0xe0) !== 0x20) {
@@ -92,7 +94,7 @@ export function getPublicIPv6(): Promise<Buffer | null> {
                 }
                 resolve(buf);
             } catch {
-                socket.close();
+                close();
                 resolve(null);
             }
         });

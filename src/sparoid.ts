@@ -83,18 +83,20 @@ async function publicIps(): Promise<Buffer[]> {
 }
 
 async function publicIPv4(): Promise<Buffer> {
-    const text = await fetch("https://ipv4.icanhazip.com").then((res) => res.text())
-    const ip = text.trim()
+    const res = await fetch("https://ipv4.icanhazip.com")
+    if (!res.ok) throw new Error(`ipv4.icanhazip.com returned ${res.status}`)
+    const ip = (await res.text()).trim()
     if (!net.isIPv4(ip)) throw new Error(`Invalid IPv4 response: ${ip}`)
-    return Buffer.from(ip.split(".").map((part) => parseInt(part)))
+    return Buffer.from(ip.split(".").map((part) => parseInt(part, 10)))
 }
 
 async function publicIPv6(): Promise<Buffer | null> {
     const ip = await getPublicIPv6()
     if (ip) return ip
     // Fallback to icanhazip.com
-    const text = await fetch("https://ipv6.icanhazip.com").then((res) => res.text())
-    const addr = text.trim()
+    const res = await fetch("https://ipv6.icanhazip.com")
+    if (!res.ok) return null
+    const addr = (await res.text()).trim()
     if (!net.isIPv6(addr)) return null
     return ipv6ToBuffer(addr)
 }
@@ -111,13 +113,14 @@ async function resolveHost(host: string): Promise<LookupAddress[]> {
 
 async function udpSend(message: Buffer, host: LookupAddress, port: number): Promise<void> {
     const client = dgram.createSocket(host.family === 4 ? 'udp4' : 'udp6')
-    const promise = new Promise<void>((resolve, reject) => {
-        client.send(message, port, host.address, (err) => {
-            if (err) reject(err)
-            else resolve()
+    try {
+        await new Promise<void>((resolve, reject) => {
+            client.send(message, port, host.address, (err) => {
+                if (err) reject(err)
+                else resolve()
+            })
         })
-    })
-    await promise
-    client.close()
-    return;
+    } finally {
+        client.close()
+    }
 }
