@@ -39,10 +39,7 @@
     },
     "require": "./dist/sparoid.cjs"
   },
-  "bin": {
-    "sparoid": "dist/cli.js"
-  },
-  "repository": {
+"repository": {
     "type": "git",
     "url": "git+https://github.com/84codes/sparoid.js.git"
   },
