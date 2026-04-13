@@ -78,7 +78,12 @@ async function publicIps(): Promise<Buffer[]> {
     const ips: Buffer[] = []
     if (ipv4.status === "fulfilled" && ipv4.value) ips.push(ipv4.value)
     if (ipv6.status === "fulfilled" && ipv6.value) ips.push(ipv6.value)
-    if (ips.length === 0) throw new Error("Failed to determine public IP")
+    if (ips.length === 0) {
+        const errors = [ipv4, ipv6]
+            .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+            .map(r => r.reason)
+        throw new Error("Failed to determine public IP: " + errors.join("; "))
+    }
     return ips
 }
 
