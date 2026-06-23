@@ -48,7 +48,7 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
         }
     }
     const results = await Promise.allSettled(promises)
-    if (results.every(r => r.status === 'rejected')) {
+    if (results.length === 0 || results.every(r => r.status === 'rejected')) {
         throw new AggregateError(
             results.map(r => (r as PromiseRejectedResult).reason),
             'sparoid auth failed: all knocks failed',
