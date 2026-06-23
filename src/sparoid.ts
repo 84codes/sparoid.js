@@ -47,7 +47,13 @@ export async function auth(host: string, port: number, key?: string, hmac_key?: 
             promises.push(udpSend(hmaced, addr, port));
         }
     }
-    await Promise.all(promises)
+    const results = await Promise.allSettled(promises)
+    if (results.every(r => r.status === 'rejected')) {
+        throw new AggregateError(
+            results.map(r => (r as PromiseRejectedResult).reason),
+            'sparoid auth failed: all knocks failed',
+        )
+    }
     await sleep(200) // let the server process the packet
 }
 
