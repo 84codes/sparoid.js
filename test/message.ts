@@ -1,4 +1,5 @@
-import test from 'ava'
+import test from 'node:test'
+import assert from 'node:assert/strict'
 import crypto from 'crypto'
 import { Message } from '../src/message.js'
 
@@ -8,52 +9,52 @@ const ipv6 = Buffer.from([
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 ]) // 2001:db8::1
 
-test("Message with IPv4 buffer length is 32 bytes", t => {
+test("Message with IPv4 buffer length is 32 bytes", () => {
   const msg = new Message(ipv4)
-  t.is(msg.toBuffer().length, 32)
+  assert.equal(msg.toBuffer().length, 32)
 })
 
-test("Message with IPv6 buffer length is 44 bytes", t => {
+test("Message with IPv6 buffer length is 44 bytes", () => {
   const msg = new Message(ipv6)
-  t.is(msg.toBuffer().length, 44)
+  assert.equal(msg.toBuffer().length, 44)
 })
 
-test("Message version field is 1", t => {
+test("Message version field is 1", () => {
   const msg = new Message(ipv4)
   const buf = msg.toBuffer()
-  t.is(buf.readInt32BE(0), 1)
+  assert.equal(buf.readInt32BE(0), 1)
 })
 
-test("Message contains timestamp", t => {
+test("Message contains timestamp", () => {
   const before = Date.now()
   const msg = new Message(ipv4)
   const after = Date.now()
   const buf = msg.toBuffer()
   const ts = Number(buf.readBigInt64BE(4))
-  t.true(ts >= before && ts <= after)
+  assert.ok(ts >= before && ts <= after)
 })
 
-test("Message contains 16-byte nonce at offset 12", t => {
+test("Message contains 16-byte nonce at offset 12", () => {
   const msg = new Message(ipv4)
   const buf = msg.toBuffer()
   const nonce = buf.subarray(12, 28)
-  t.false(nonce.every(b => b === 0))
+  assert.ok(!nonce.every(b => b === 0))
 })
 
-test("Message IPv4 address at offset 28", t => {
+test("Message IPv4 address at offset 28", () => {
   const msg = new Message(ipv4)
   const buf = msg.toBuffer()
-  t.deepEqual(buf.subarray(28, 32), ipv4)
+  assert.deepEqual(buf.subarray(28, 32), ipv4)
 })
 
-test("Message IPv6 address at offset 28", t => {
+test("Message IPv6 address at offset 28", () => {
   const msg = new Message(ipv6)
   const buf = msg.toBuffer()
-  t.deepEqual(buf.subarray(28, 44), ipv6)
+  assert.deepEqual(buf.subarray(28, 44), ipv6)
 })
 
-test("Message rejects invalid IP length", t => {
-  t.throws(() => new Message(Buffer.alloc(8)), { message: /IP must be 4 .* or 16/ })
+test("Message rejects invalid IP length", () => {
+  assert.throws(() => new Message(Buffer.alloc(8)), { message: /IP must be 4 .* or 16/ })
 })
 
 // --- Round-trip encrypt/decrypt ---
@@ -75,18 +76,18 @@ function decrypt(iv: Buffer, ciphertext: Buffer, key: Buffer): Buffer {
 
 const aesKey = Buffer.alloc(32) // 256-bit zero key
 
-test("Message IPv4 round-trip encrypt/decrypt", t => {
+test("Message IPv4 round-trip encrypt/decrypt", () => {
   const msg = new Message(ipv4)
   const plain = msg.toBuffer()
   const { iv, ciphertext } = encrypt(plain, aesKey)
   const decrypted = decrypt(iv, ciphertext, aesKey)
-  t.deepEqual(decrypted, plain)
+  assert.deepEqual(decrypted, plain)
 })
 
-test("Message IPv6 round-trip encrypt/decrypt", t => {
+test("Message IPv6 round-trip encrypt/decrypt", () => {
   const msg = new Message(ipv6)
   const plain = msg.toBuffer()
   const { iv, ciphertext } = encrypt(plain, aesKey)
   const decrypted = decrypt(iv, ciphertext, aesKey)
-  t.deepEqual(decrypted, plain)
+  assert.deepEqual(decrypted, plain)
 })

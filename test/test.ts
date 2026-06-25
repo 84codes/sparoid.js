@@ -1,15 +1,16 @@
-import test from 'ava'
+import test from 'node:test'
+import assert from 'node:assert/strict'
 import dgram from 'dgram'
 import * as sparoid from '../src/sparoid.js'
 
 const key = "0000000000000000000000000000000000000000000000000000000000000000"
 const loopback = Buffer.from([127, 0, 0, 1])
 
-test("it can auth", async t => {
+test("it can auth", async () => {
   const server = dgram.createSocket('udp4')
   await new Promise<void>((resolve, reject) => {
     server.on('message', (msg) => {
-      t.is(msg.length, 96)
+      assert.equal(msg.length, 96)
       server.close()
       resolve()
     })
@@ -32,7 +33,7 @@ test("it can auth", async t => {
   })
 })
 
-test("raises on error on DNS error", async t => {
-  await t.throwsAsync(() => sparoid.auth("none.arpa", 8485, key, key),
+test("raises on error on DNS error", async () => {
+  await assert.rejects(() => sparoid.auth("none.arpa", 8485, key, key),
     { message: /ENOTFOUND/ })
 })
