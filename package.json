@@ -18,7 +18,7 @@
   },
   "name": "@84codes/sparoid",
   "type": "module",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "SPAroid client",
   "main": "dist/sparoid.cjs",
   "types": "dist/sparoid.d.ts",
